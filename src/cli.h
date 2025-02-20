@@ -12,7 +12,8 @@
 
 void getOptions(int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
                 unsigned short int *port, struct sockaddr_in *host_addr,
-                unsigned int *attack_time);
+                unsigned int *attack_time,
+		unsigned int *wait_time);
 
 #endif
 

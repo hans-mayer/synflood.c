@@ -45,6 +45,10 @@ Optional parameters:\n\
     of the internet. Note: the spoofer is currently not perfect and does\n\
     not take into consideration special or reserved addresses. It's\n\
     completely random.\n\
+\n\   
+-w, --wait-time\n\
+    wait seconds after synflood \n\
+\n\
 ";
 
 
@@ -118,6 +122,35 @@ validateAttackTime (char *inp)
     }
   }
 
+  int wait_time = atoi(inp);
+  if (wait_time > 120)
+    invalid = true;
+
+  if (invalid) { 
+    fprintf(stderr, "Invalid wait time: %s.\n", inp);
+    exit(EXIT_FAILURE);
+  }
+
+  return (unsigned int) wait_time;
+}
+
+
+/**
+ * Make sure that the attack time is positive and not longer than 2 minutes.
+*/
+unsigned int
+validateWaitTime (char *inp)
+{
+  bool invalid = false;
+  
+  size_t inplen = strlen(inp);
+  for (int i = 0; i < inplen; ++i) {
+    if (!isdigit(inp[i])) {
+      invalid = true;
+      break;
+    }
+  }
+
   int attack_time = atoi(inp);
   if (attack_time > 120)
     invalid = true;
@@ -144,6 +177,7 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
   char *hostname_placeholder;
   bool hostname_initialized = false, port_initialized = false,
        attack_time_intialized = false;
+       wait_time_intialized = false;
 
   *attack_time = DEFAULT_ATTACK_TIME;
 
@@ -155,10 +189,11 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
       {"attack-time", required_argument, NULL,  (int) 't'},
       {"enable-sniffer", no_argument, NULL, (int) 's'},
       {"enable-spoofing", no_argument, NULL, (int) 'e'},
+      {"wait-time", no_argument, NULL, (int) 'w'},
       {0, 0, 0, 0}
   };
 
-  char *short_opts = "h:p:vt:";
+  char *short_opts = "h:p:vt:w:";
 
   opt = getopt_long(argc, argv, short_opts, option_array, NULL);
   while (opt != -1) {
@@ -180,6 +215,11 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
       case 't':
         *attack_time = validateAttackTime(optarg);
         attack_time_intialized = true;
+        break;
+
+      case 'w':
+        *wait_time = validateWaitTime(optarg);
+        wait_time_intialized = true;
         break;
 
       case 's':

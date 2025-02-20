@@ -1,3 +1,4 @@
+
 #include "synflood.h"
 
 bool attack = true;
@@ -164,6 +165,7 @@ main (int argc, char *argv[], char *envp[])
   pid_t pid;
   unsigned short int port;
   unsigned int attack_time;
+  unsigned int wait_time;
   struct sockaddr_in host_addr;
   char hostname[HOSTNAME_BUFFER_LENGTH];
   getOptions(argc, argv, hostname, &port, &host_addr, &attack_time);
