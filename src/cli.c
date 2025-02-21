@@ -45,7 +45,7 @@ Optional parameters:\n\
     of the internet. Note: the spoofer is currently not perfect and does\n\
     not take into consideration special or reserved addresses. It's\n\
     completely random.\n\
-\n\   
+\n\
 -w, --wait-time\n\
     wait seconds after synflood \n\
 \n\
@@ -122,35 +122,6 @@ validateAttackTime (char *inp)
     }
   }
 
-  int wait_time = atoi(inp);
-  if (wait_time > 120)
-    invalid = true;
-
-  if (invalid) { 
-    fprintf(stderr, "Invalid wait time: %s.\n", inp);
-    exit(EXIT_FAILURE);
-  }
-
-  return (unsigned int) wait_time;
-}
-
-
-/**
- * Make sure that the attack time is positive and not longer than 2 minutes.
-*/
-unsigned int
-validateWaitTime (char *inp)
-{
-  bool invalid = false;
-  
-  size_t inplen = strlen(inp);
-  for (int i = 0; i < inplen; ++i) {
-    if (!isdigit(inp[i])) {
-      invalid = true;
-      break;
-    }
-  }
-
   int attack_time = atoi(inp);
   if (attack_time > 120)
     invalid = true;
@@ -165,21 +136,51 @@ validateWaitTime (char *inp)
 
 
 /**
+ * Make sure that the wait time is positive and not longer than 2 minutes.
+*/
+unsigned int
+validateWaitTime (char *inp)
+{
+  bool invalid = false;
+  
+  size_t inplen = strlen(inp);
+  for (int i = 0; i < inplen; ++i) {
+    if (!isdigit(inp[i])) {
+      invalid = true;
+      break;
+    }
+  }
+
+  int wait_time = atoi(inp);
+  if (wait_time > 120)
+    invalid = true;
+
+  if (invalid) { 
+    fprintf(stderr, "Invalid wait time: %s.\n", inp);
+    exit(EXIT_FAILURE);
+  }
+
+  return (unsigned int) wait_time;
+}
+
+
+/**
  * Parse the command line options and represent them in a way we can manipulate and use.
 */
 void
 getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
             unsigned short int *port, struct sockaddr_in *host_addr,
-            unsigned int *attack_time)
+            unsigned int *attack_time, unsigned int *wait_time )
 
 {
   int opt = 0;
   char *hostname_placeholder;
   bool hostname_initialized = false, port_initialized = false,
-       attack_time_intialized = false;
+       attack_time_intialized = false,
        wait_time_intialized = false;
 
   *attack_time = DEFAULT_ATTACK_TIME;
+  *wait_time = DEFAULT_WAIT_TIME;
 
   struct option option_array[] = {
       {"help", no_argument, NULL, (int) 'H'},
@@ -241,7 +242,7 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
     opt = getopt_long(argc, argv, short_opts, option_array, NULL);
   }
 
-  if (!(hostname_initialized && port_initialized && attack_time_intialized)) {
+  if (!(hostname_initialized && port_initialized && attack_time_intialized && wait_time_intialized )) {
       fprintf(stderr, "%s", usage_message);
       exit(EXIT_FAILURE);
   }

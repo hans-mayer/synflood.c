@@ -8,6 +8,7 @@
 
 #define SUSPENSE_TIME 1
 #define DEFAULT_ATTACK_TIME 1
+#define DEFAULT_WAIT_TIME 1
 
 
 void getOptions(int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],

