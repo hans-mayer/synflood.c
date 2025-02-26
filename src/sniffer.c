@@ -1,5 +1,6 @@
 #include "sniffer.h"
 
+/* deprecated
 char *
 getDefaultDevice ()
 {
@@ -8,6 +9,32 @@ getDefaultDevice ()
   if (dev == NULL)
     die("%d: Couldn't find default device: %s\n", __LINE__ - 2, errbuf);
   return dev;
+}
+*/ 
+
+char *
+getDefaultDevice ()
+{
+    char *device;
+    char error_buffer[PCAP_ERRBUF_SIZE];
+   
+    pcap_if_t *all_devs;
+
+    if(pcap_findalldevs(&all_devs, error_buffer) == -1){
+        vlog("getDefaultDevice: error finding devices \n");
+    }
+
+    device = all_devs->name;
+    //or loop through all_devs to find the one you want
+
+    if (all_devs == NULL) {
+        vlog("Error finding devices: %s\n", error_buffer);
+    }
+
+    vlog ( "getDefaultDevice: device %s \n" , device ) ; 
+    
+    return device ; 
+
 }
 
 

@@ -113,11 +113,11 @@ resolveHostName (char *hostname, unsigned short int port, struct sockaddr_in *ad
     if (connect(sockfd, (struct sockaddr *) addr, sizeof(struct sockaddr_in)) == -1)
       continue;
     close(sockfd);
-    vlog("%s\n", buf);
+    vlog("resolveHostName buffer: %s\n", buf);
     return;
   }
-
-  die("Failed to perform a successful hostname lookup.\n");
+  vlog("\nresolveHostName: Failed to perform a successful hostname lookup \n") ; 
+/*   die("Failed to perform a successful hostname lookup.\n"); */ 
 }
 
 
