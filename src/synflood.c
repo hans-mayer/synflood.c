@@ -1,6 +1,6 @@
 
 #include "synflood.h"
-#include<time.h>
+#include <time.h>
 
 
 bool attack = true;
@@ -176,10 +176,10 @@ synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, uns
 
   struct timeval time;
   gettimeofday(&time, NULL);
-  int64_t s1 = (int64_t)(time.tv_sec) * 1000;
+  int64_t s1 = (int64_t)(time.tv_sec) % 60 ;
   int64_t s2 = (time.tv_usec );
 
-  vlog ( "%6d.%6d last attack \n" , (int)s1 , (int)s2 ) ; 
+  vlog ( "last attack in second %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
   /* sleep ( 5 ) ; */ 
 }
 

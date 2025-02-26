@@ -187,7 +187,7 @@ validateLoopCount (char *inp)
   }
 
   int loop_count = atoi(inp);
-  if (loop_count > 120)
+  if ( loop_count > 1000000 )
     invalid = true;
 
   if (invalid) { 

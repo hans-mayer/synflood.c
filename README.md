@@ -6,6 +6,7 @@ Actually this program does not really do an attack as it sends immediatelly afte
 Therefore there are no half opended TCP sessions. 
 But it's ok for learning purposes. 
 
+-------------
 
 A TCP SYN Flooding tool written in C for Unix-based systems.
 
@@ -20,8 +21,8 @@ server will respond with a SYN-ACK and allocate some memory in the kernel
 buffer in an attempt to set up a new connection with us (at this point the
 connection is "half open" which is why the SYN Flooding Attack is also
 known as the "Half Open Attack"). The half open connections can be seen on
-the server side with `netstat -nt4 | grep "SYN_RECV"`. By sending multiple
-SYNs per second, we cantry to get the server to exhaust it's memory and thus
+the server side with `netstat -nat | grep "SYN_RECV"`. By sending multiple
+SYNs per second, we can try to get the server to exhaust it's memory and thus
 make it to be unable to serve legitimate clients.
 
 To drive an important point home - this DOS attack exhausts a server's memory
@@ -33,25 +34,17 @@ that you do not have explicit consent to attack!
 
 ## Dependencies
 This code was tested on the following platform:
-- **OS:** Ubuntu 18.04.4 LTS x86_64
-- **Kernel:** 4.15.0-96-generic
-- **CPU:** Intel i7-8550U (8) @ 4.000GHz
-- **Compiler:** gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
-- **Linker:** GNU ld (GNU Binutils for Ubuntu) 2.30
-
-- **glibc:** Ubuntu GLIBC 2.27-3ubuntu1
-- **libpcap:** v1.8.1
-
-libpcap is available in
-[Ubuntu's Package Repositories](https://packages.ubuntu.com/search?keywords=libpcap-dev).
+- **OS:** Debian 12.9 bookworm 
+- **Kernel:** 6.1.123-1
+- **Compiler:** gcc version 12.2.0 (Debian 12.2.0-14) 
+- **Linker:** GNU ld (GNU Binutils for Ubuntu) 2.40
+- **libpcap:** v 1.10.3-1 
 
 
 ## Direct Installation
-On Ubuntu:
+On Debian:
 ```bash
-sudo apt update
-sudo apt install build-essential libpcap-dev -y
-git clone https://github.com/Hypro999/synflood.c.git synflood/
+git clone https://github.com/hans-mayer/synflood.c synflood/ 
 cd synflood/
 make
 ```
@@ -149,4 +142,11 @@ Optional parameters:
     of the internet. Note: the spoofer is currently not perfect and does
     not take into consideration special or reserved addresses. It's
     completely random.
+
+-c, --loop-count
+    run synflood for a well defined number of TCP syn requests 
+
+-w, --wait-time
+    wait seconds after synflood 
+
 ```
