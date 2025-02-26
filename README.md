@@ -1,5 +1,12 @@
 # synflood.c
 
+This is a fork from https://github.com/Hypro999/synflood.c 
+
+Actually this program does not really do an attack as it sends immediatelly after SYN a RESET.
+Therefore there are no half opended TCP sessions. 
+But it's ok for learning purposes. 
+
+
 A TCP SYN Flooding tool written in C for Unix-based systems.
 
 SYN Flooding is a type of DOS (Denial-of-Service) attack which exploits the
@@ -116,6 +123,8 @@ Required parameters:
     The port number that you want to attack. Can be any valid TCP port that's
     open on the server. For example, aim for webservers (80/443) or SSH (22).
 
+Optional parameters:
+
 -t, --attack-time
     The number of seconds to launch the attack for. Must be a positive integer
     less than 120 (seconds) this is done for your own (and the target)
@@ -123,7 +132,6 @@ Required parameters:
     cause any serious damage lasting longer than a short while (plus 2 minutes
     should actually be enough to take down most test servers).
 
-Optional parameters:
 -v
     Enable verbose mode (recommended).
 
