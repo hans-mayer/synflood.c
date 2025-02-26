@@ -2,8 +2,8 @@
 
 This is a fork from https://github.com/Hypro999/synflood.c 
 
-Actually this program does not really do an attack as it sends immediatelly after SYN a RESET.
-Therefore there are no half opended TCP sessions. 
+Actually this program does not really do an attack as it sends immediately after SYN a RESET.
+Therefore there are not so many half opened TCP sessions. 
 But it's ok for learning purposes. 
 
 -------------
