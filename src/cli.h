@@ -9,12 +9,13 @@
 #define SUSPENSE_TIME 1
 #define DEFAULT_ATTACK_TIME 1
 #define DEFAULT_WAIT_TIME 1
+#define DEFAULT_LOOP_COUNT 1
 
 
 void getOptions(int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
                 unsigned short int *port, struct sockaddr_in *host_addr,
                 unsigned int *attack_time,
-		unsigned int *wait_time);
+		unsigned int *wait_time , unsigned int *loop_count );
 
 #endif
 
