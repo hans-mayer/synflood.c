@@ -191,7 +191,7 @@ validateLoopCount (char *inp)
     invalid = true;
 
   if (invalid) { 
-    fprintf(stderr, "Invalid loop count : %s.\n", inp);
+    fprintf(stderr, "Invalid loop count : %s. Use option -t for longer attacks \n", inp);
     exit(EXIT_FAILURE);
   }
 
