@@ -27,7 +27,8 @@ void seedRandomNumberGenerator();
 void resolveHostName(char *hostname, unsigned short int port, struct sockaddr_in *addr);
 struct in_addr getCurrentIpAddr();
 uint16_t getSpoofedPortNumber();
-in_addr_t getSpoofedIpAddr();
+in_addr_t net_getSpoofedIpAddr();
+in_addr_t host_getSpoofedIpAddr();
 
 #endif
 

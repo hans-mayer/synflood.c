@@ -117,7 +117,7 @@ resolveHostName (char *hostname, unsigned short int port, struct sockaddr_in *ad
     return;
   }
   vlog("\nresolveHostName: Failed to perform a successful hostname lookup \n") ; 
-/*   die("Failed to perform a successful hostname lookup.\n"); */ 
+  /*   die("Failed to perform a successful hostname lookup.\n"); */ 
 }
 
 
@@ -178,11 +178,41 @@ getSpoofedPortNumber ()
  * just a bad idea.
 */
 in_addr_t
-getSpoofedIpAddr ()
+net_getSpoofedIpAddr ()
 {
   unsigned int spoofed_parts[4];
   for (int i = 0; i < 4; ++i)
     spoofed_parts[i]= random() % 256;
+ 
+  char spoofed_source_address[17];
+  memset(spoofed_source_address, (int) '\0', 17);
+  sprintf(spoofed_source_address, "%u.%u.%u.%u", spoofed_parts[0], spoofed_parts[1],
+          spoofed_parts[2], spoofed_parts[3]);
+
+  return inet_addr(spoofed_source_address);
+}
+
+in_addr_t
+host_getSpoofedIpAddr ()
+{
+  int i ; 
+  unsigned int spoofed_parts[4];
+  struct in_addr current_ipv4_addr;
+  unsigned int current_IP ; 
+
+  current_ipv4_addr = getCurrentIpAddr() ; 
+
+  /* for (int i = 0; i < 4; ++i)
+    spoofed_parts[i]= 0 ; */ 
+
+  /* take the first 3 octetes from the local IP address = network part */ 
+  current_IP = current_ipv4_addr.s_addr ; 
+  for (i = 0; i < 3; ++i) {
+    spoofed_parts[i]= current_IP & 0xff ; 
+    current_IP = current_IP >> 8 ; 
+  } 
+  /* randomize the host part */ 
+  spoofed_parts[3]= random() % 256; 
  
   char spoofed_source_address[17];
   memset(spoofed_source_address, (int) '\0', 17);

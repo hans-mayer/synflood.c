@@ -25,5 +25,5 @@ utils: src/utils.c src/utils.h
 	$(CC) src/utils.c -c -o bin/utils.o $(CFLAGS)
 
 clean:
-	rm bin/synflood
+	rm bin/* 
 

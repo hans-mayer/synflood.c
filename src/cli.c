@@ -6,6 +6,7 @@ bool enable_spoofing = false;
 bool enable_wait_time = false ; 
 bool enable_loop_count = false ; 
 bool enable_attack_time = false ; 
+bool enable_classc = false ; 
 
 char usage_message[] = "\
 Usage: [sudo] synflood [REQUIRED PARAMETERS] [OPTIONAL PARAMETERS]\n\
@@ -34,12 +35,17 @@ Optional parameters:\n\
 -v\n\
     Enable verbose mode (recommended).\n\
 \n\
---enable-sniffer\n\
+-s --enable-sniffer\n\
     Enable the packet sniffer. We use libpcap and a child process to manage\n\
     sniffing only the packets we're interested in. If verbose mode is enabled\n\
     you'll be able to see the exact packet capture filter being employed.\n\
 \n\
---enable-spoofing\n\
+-n --class-c-network-spoofing\n\
+    It enables random IPv4 address out of the range where the host is located.\n\
+    If the host is within a supernet of class C it will only take 256 IP addresses \n\
+    for the spoofed host part. It doesn't care about the real notwork boundaries. \n\
+\n\
+-e --enable-spoofing\n\
     Enable random IPv4 address spoofing. Not recommended since more often\n\
     than not these packets would be dropped by the network at some point\n\
     or the other. For example, all major VPS providers will block outgoing\n\
@@ -53,7 +59,10 @@ Optional parameters:\n\
     run synflood for a well defined number \n\
 \n\
 -w, --wait-time\n\
-    wait seconds after synflood \n\
+    wait seconds before and after synflood \n\
+    values between 0 and 30 \n\
+    0 means no wait time \n\
+    default value is 2 seconds  \n\
 \n\
 ";
 
@@ -142,7 +151,7 @@ validateAttackTime (char *inp)
 
 
 /**
- * Make sure that wait time is positive and not longer than 2 minutes.
+ * Make sure that wait time is positive and not longer than 30 seconds 
 */
 unsigned int
 validateWaitTime (char *inp)
@@ -158,7 +167,7 @@ validateWaitTime (char *inp)
   }
 
   int wait_time = atoi(inp);
-  if (wait_time > 120)
+  if (wait_time > 30)
     invalid = true;
 
   if (invalid) { 
@@ -171,7 +180,7 @@ validateWaitTime (char *inp)
 
 
 /**
- * Make sure that loop count is positive and not bigger than 10000 
+ * Make sure that loop count is positive and not bigger than 1000000
  */
 unsigned int
 validateLoopCount (char *inp)
@@ -228,13 +237,16 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
       {"enable-spoofing", no_argument, NULL, (int) 'e'},
       {"wait-time", required_argument, NULL, (int) 'w'},
       {"loop-count", required_argument, NULL, (int) 'c'},
+      {"class-c-network-spoofing", no_argument, NULL, (int) 'n'},
       {0, 0, 0, 0}
   };
 
-  char *short_opts = "h:p:vt:w:c:";
+  /* for those options without an argument add an "x" */ 
+  char *short_opts = "h:p:vx:t:w:c:nx:sx:ex:";
 
   opt = getopt_long(argc, argv, short_opts, option_array, NULL);
   while (opt != -1) {
+    /* vlog ( "opt: %d %c \n" , opt , (char)opt ) ; */ 
     switch (opt) {
       case 'h':
         hostname_placeholder = optarg;
@@ -272,6 +284,10 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
         enable_sniffer = true;
         break;
 
+      case 'n':
+        enable_classc = true;
+        break;
+
       case 'e':
         enable_spoofing = true;
         break;
@@ -287,8 +303,14 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
     opt = getopt_long(argc, argv, short_opts, option_array, NULL);
   }
 
-  if (!(wait_time_initialized && attack_time_initialized && loop_count_initialized )) {
-    vlog ( "wait_time_initialized , attack_time_initialized or loop_count_initialized not initialized \n" ) ; 
+  if (!(wait_time_initialized )) {
+    vlog ( "wait_time is not initialized \n" ) ; 
+  } 
+  if (!(attack_time_initialized )) {
+    vlog ( "attack_time is not initialized \n" ) ; 
+  } 
+  if (!(loop_count_initialized )) {
+    vlog ( "loop_count is not initialized \n" ) ; 
   } 
 
   if (!(hostname_initialized && port_initialized )) {
