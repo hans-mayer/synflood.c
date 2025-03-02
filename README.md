@@ -59,37 +59,6 @@ For a more "global installation" do one of the following:
 - Create a soft link to the binary with `ln -s`.
 
 
-## Run as a Docker Container
-This is recommended over running directly since it handles dependencies and permissions for you.
-Now you don't have to worry about running someone else's code as root on your host system
-(see **Usage** for why you need to run as root otherwise).  
-
-1. **Step 1:** Build the image.  
-   - Method 1: Directly use the image from dockerhub.
-     ```bash
-     docker pull hypro999/synflood.c
-     ```
-
-   - Method 2: Build the image yourself from source.
-     ```bash
-     docker build -t hypro999/synflood.c:latest .
-     ```
-
-- **Step 2:** Run the tool in a container.
-```bash
-docker run --rm hypro999/synflood.c -h example.com -p 80 -t 1 -v
-```
-If you use this tool often (even though it's more for demonstration than to
-actually attack with) then you might want to add an alias to your bashrc.
-```bash
-echo "alias synflood=\"docker run --rm hypro999/synflood.c\"" >> ~/.bashrc
-```
-Now reload your bashrc file (using `source ~/.bashrc`) and you can directly run:
-```bash
-synflood -h example.com -p 80 -t 1 -v
-```
-
-
 ## Usage
 This binary needs to be run as a superuser. This is because to craft and send
 our own custom TCP SYN packets we need to use raw sockets (see raw(7)) and
@@ -124,16 +93,20 @@ Optional parameters:
     network's safety. We just want to demonstrate synflooding here and not
     cause any serious damage lasting longer than a short while (plus 2 minutes
     should actually be enough to take down most test servers).
-
 -v
     Enable verbose mode (recommended).
 
---enable-sniffer
+-s --enable-sniffer
     Enable the packet sniffer. We use libpcap and a child process to manage
     sniffing only the packets we're interested in. If verbose mode is enabled
     you'll be able to see the exact packet capture filter being employed.
 
---enable-spoofing
+-n --class-c-network-spoofing
+    It enables random IPv4 address out of the range where the host is located.
+    If the host is within a supernet of class C it will only take 256 IP addresses 
+    for the spoofed host part. It doesn't care about the real notwork boundaries. 
+
+-e --enable-spoofing
     Enable random IPv4 address spoofing. Not recommended since more often
     than not these packets would be dropped by the network at some point
     or the other. For example, all major VPS providers will block outgoing
@@ -144,9 +117,12 @@ Optional parameters:
     completely random.
 
 -c, --loop-count
-    run synflood for a well defined number of TCP syn requests 
+    run synflood for a well defined number 
 
 -w, --wait-time
-    wait seconds after synflood 
+    wait seconds before and after synflood 
+    values between 0 and 30 
+    0 means no wait time 
+    default value is 2 seconds  
 
 ```
