@@ -1,5 +1,10 @@
 #include "cli.h"
 
+extern int allports[] ; 
+extern int maxports ; 
+extern char portlist[] ; 
+
+
 bool verbose = false;
 bool enable_sniffer = false;
 bool enable_spoofing = false;
@@ -12,28 +17,30 @@ char usage_message[] = "\
 Usage: [sudo] synflood [REQUIRED PARAMETERS] [OPTIONAL PARAMETERS]\n\
 \n\
 Required parameters:\n\
+\n\
 -h, --hostname\n\
-    The hostname of the target to attack. Only use hostnames of TCP servers\n\
-    that are available to your default network interface (usually wlo1 or\n\
-    eth0) and that you either directly own or have explicit permission to\n\
-    attack. We expect the hostname to resolve to an IPv4 address.\n\
-    Because we use wlo1/eth0 you can't use any loopback interface hostnames\n\
-    to directly synflood yourself.\n\
+    The hostname or IP address of the target to attack. \n\
+    We expect the hostname to resolve to an IPv4 address.\n\
+    example: \n\
+       -h 192.168.1.1  \n\
 \n\
 -p, --port\n\
-    The port number that you want to attack. Can be any valid TCP port that's\n\
-    open on the server. For example, aim for webservers (80/443) or SSH (22).\n\
+    A port number or a list of port numbers that you want to attack. \n\
+    Can be any valid TCP port that's open on the target server. \n\
+    examples: \n\
+       --port 80 \n\
+       -p 80,25,443 \n\
 \n\
 Optional parameters:\n\
 \n\
 -t, --attack-time\n\
-    The number of seconds to launch the attack for. Must be a positive integer\n\
-    less than 120 (seconds) this is done for your own (and the target)\n\
-    network's safety. We just want to demonstrate synflooding here and not\n\
-    cause any serious damage lasting longer than a short while (plus 2 minutes\n\
-    should actually be enough to take down most test servers).\n\
+    The number of seconds to launch the attack for. \n\
+    Must be a positive integer less than 120 (seconds).  \n\
+    example: \n\
+       -t 30 \n\
+\n\
 -v\n\
-    Enable verbose mode (recommended).\n\
+    Enable verbose mode (recommended to be used as first argument).\n\
 \n\
 -s --enable-sniffer\n\
     Enable the packet sniffer. We use libpcap and a child process to manage\n\
@@ -50,19 +57,23 @@ Optional parameters:\n\
     than not these packets would be dropped by the network at some point\n\
     or the other. For example, all major VPS providers will block outgoing\n\
     packets with spoofed ip addresses. Even incoming spoofed packets can\n\
-    potentially be detected and dropped. This is done for the general good\n\
-    of the internet. Note: the spoofer is currently not perfect and does\n\
-    not take into consideration special or reserved addresses. It's\n\
-    completely random.\n\
+    potentially be detected and dropped. \n\
+    Usefull for testing within the own network. \n\
 \n\
 -c, --loop-count\n\
-    run synflood for a well defined number \n\
+    run synflood for a well defined number of packets sent out. \n\
+    Usefull for testing with a small number of packets. \n\
+    example: \n\
+       -c 10 \n\
 \n\
 -w, --wait-time\n\
     wait seconds before and after synflood \n\
     values between 0 and 30 \n\
     0 means no wait time \n\
     default value is 2 seconds  \n\
+    Usefull to prepare 'tcpdump' or other tools in a different window. \n\
+    example: \n\
+       -w 0 \n\
 \n\
 ";
 
@@ -76,6 +87,8 @@ validatePort (const char *inp)
   int port_no;
   bool invalid_port_no = false;
   size_t slen = strlen(inp);
+
+  /* vlog ( "validatePort : %s \n" , inp ) ; */ 
 
   for (int i = 0; i < slen; ++i) {
     if (isdigit(inp[i]))
@@ -98,6 +111,30 @@ validatePort (const char *inp)
   return (unsigned short int) port_no;
 }
 
+unsigned short int
+allPorts (const char *inp) 
+{
+  int ch = ',' ; 
+  char *position1 , *position2 ; 
+  char inpbuffer[256] ; 
+
+  strcpy ( inpbuffer , inp ) ; 
+  position1 = (char*)inpbuffer ; 
+  if ( strchr ( position1 , ch ) == NULL ) 
+      allports[maxports] = validatePort ( position1 ) ; 
+    else {
+      while ( ( position2 = strchr ( position1 , ch ) ) != NULL ) { 
+          strncpy ( position2 , "\x00" , 1 ) ; 
+          allports[maxports] = validatePort ( position1 ) ; 
+          position1 = ++position2 ; 
+          maxports++ ; 
+      } ; 
+    allports[maxports] = validatePort ( position1 ) ; 
+  } ; 
+
+  /* printf ( "allPorts : maxports %d \n" , maxports ) ; */ 
+  return ( (unsigned short int)allports[0] ) ; 
+} 
 
 /**
  * Validate the input and populate the hostname string. Also perform a DNS lookup of the given
@@ -114,7 +151,7 @@ validateHostname (const char *inp, char hostname[HOSTNAME_BUFFER_LENGTH],
   memset(hostname, (int)'\0', HOSTNAME_BUFFER_LENGTH);
   strncpy(hostname, inp, HOSTNAME_BUFFER_LENGTH-1);
 
-  vlog("Performing hostname lookup... ");
+  vlog("Performing hostname lookup... \n");
   resolveHostName(hostname, port, host_addr);
 
   return true;
@@ -217,6 +254,8 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
             unsigned int *attack_time, unsigned int *wait_time , unsigned int *loop_count )
 
 {
+  /* printf ( "verbose %d \n" , verbose ) ; */ 
+  vlog ( "getOptions \n" ) ;
   int opt = 0;
   char *hostname_placeholder;
   bool hostname_initialized = false, port_initialized = false,
@@ -246,16 +285,20 @@ getOptions (int argc, char *argv[], char hostname[HOSTNAME_BUFFER_LENGTH],
 
   opt = getopt_long(argc, argv, short_opts, option_array, NULL);
   while (opt != -1) {
-    /* vlog ( "opt: %d %c \n" , opt , (char)opt ) ; */ 
+    /* -v must be the first option */ 
+    /* vlog ( "opt: %d %c %s \n" , opt , (char)opt , optarg ) ; */ 
     switch (opt) {
       case 'h':
         hostname_placeholder = optarg;
         hostname_initialized = true;
+        /* vlog ( "hostname_placeholder %s \n" , hostname_placeholder ) ;  */ 
         break;
 
       case 'p':
-        *port = validatePort(optarg);
+        *port = allPorts(optarg);
         port_initialized = true;
+	strcpy ( portlist , optarg ) ; 
+	/* vlog ( "portlist  %s \n" , portlist ) ; */ 
         break;
 
       case 'v':

@@ -1,13 +1,5 @@
 # synflood.c
 
-This is a fork from https://github.com/Hypro999/synflood.c 
-
-Actually this program does not really do an attack as it sends immediately after SYN a RESET.
-Therefore there are not so many half opened TCP sessions. 
-But it's ok for learning purposes. 
-
--------------
-
 A TCP SYN Flooding tool written in C for Unix-based systems.
 
 SYN Flooding is a type of DOS (Denial-of-Service) attack which exploits the
@@ -64,37 +56,41 @@ This binary needs to be run as a superuser. This is because to craft and send
 our own custom TCP SYN packets we need to use raw sockets (see raw(7)) and
 raw sockets can only be created by a superuser.
 
-NOTE: Technically any user with the `CAP_NET_RAW` capability can create raw
-sockets, so in that sense a superuser isn't exactly needed. But a more
-thorough explanation of this is beyond the scope of this README - read
-capabilities(7) if you're really interested.
+This is a fork from https://github.com/Hypro999/synflood.c 
+written by Hemanth V. Alluri 
+
+As his repository is archived I was not able to create a pull request.
+Therefore I created a new repository. 
+
 
 ```
 Usage: [sudo] synflood [REQUIRED PARAMETERS] [OPTIONAL PARAMETERS]
 
 Required parameters:
+
 -h, --hostname
-    The hostname of the target to attack. Only use hostnames of TCP servers
-    that are available to your default network interface (usually wlo1 or
-    eth0) and that you either directly own or have explicit permission to
-    attack. We expect the hostname to resolve to an IPv4 address.
-    Because we use wlo1/eth0 you can't use any loopback interface hostnames
-    to directly synflood yourself.
+    The hostname or IP address of the target to attack. 
+    We expect the hostname to resolve to an IPv4 address.
+    example: 
+       -h 192.168.1.1  
 
 -p, --port
-    The port number that you want to attack. Can be any valid TCP port that's
-    open on the server. For example, aim for webservers (80/443) or SSH (22).
+    A port number or a list of port numbers that you want to attack. 
+    Can be any valid TCP port that's open on the target server. 
+    examples: 
+       --port 80 
+       -p 80,25,443 
 
 Optional parameters:
 
 -t, --attack-time
-    The number of seconds to launch the attack for. Must be a positive integer
-    less than 120 (seconds) this is done for your own (and the target)
-    network's safety. We just want to demonstrate synflooding here and not
-    cause any serious damage lasting longer than a short while (plus 2 minutes
-    should actually be enough to take down most test servers).
+    The number of seconds to launch the attack for. 
+    Must be a positive integer less than 120 (seconds).  
+    example: 
+       -t 30 
+
 -v
-    Enable verbose mode (recommended).
+    Enable verbose mode (recommended to be used as first argument).
 
 -s --enable-sniffer
     Enable the packet sniffer. We use libpcap and a child process to manage
@@ -111,18 +107,21 @@ Optional parameters:
     than not these packets would be dropped by the network at some point
     or the other. For example, all major VPS providers will block outgoing
     packets with spoofed ip addresses. Even incoming spoofed packets can
-    potentially be detected and dropped. This is done for the general good
-    of the internet. Note: the spoofer is currently not perfect and does
-    not take into consideration special or reserved addresses. It's
-    completely random.
+    potentially be detected and dropped. 
+    Usefull for testing within the own network. 
 
 -c, --loop-count
-    run synflood for a well defined number 
+    run synflood for a well defined number of packets sent out. 
+    Usefull for testing with small number of packets. 
+    example: 
+       -c 10 
 
 -w, --wait-time
     wait seconds before and after synflood 
     values between 0 and 30 
     0 means no wait time 
     default value is 2 seconds  
-
+    Usefull to prepare 'tcpdump' or other tools in a different window: 
+    example: 
+       -w 0 
 ```

