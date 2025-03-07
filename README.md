@@ -56,11 +56,6 @@ This binary needs to be run as a superuser. This is because to craft and send
 our own custom TCP SYN packets we need to use raw sockets (see raw(7)) and
 raw sockets can only be created by a superuser.
 
-This is a fork from https://github.com/Hypro999/synflood.c 
-written by Hemanth V. Alluri 
-
-As his repository is archived I was not able to create a pull request.
-Therefore I created a new repository. 
 
 
 ```
@@ -125,3 +120,10 @@ Optional parameters:
     example: 
        -w 0 
 ```
+
+## History 
+This is a fork from https://github.com/Hypro999/synflood.c 
+written by Hemanth V. Alluri 
+
+As his repository is archived I was not able to create a pull request.
+Therefore I created a new repository. 
