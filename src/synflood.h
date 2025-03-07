@@ -8,7 +8,8 @@
 #include <stdint.h>
 #include <sys/wait.h>
 
-#define PACKET_BUFFER_LEN sizeof(struct iphdr) + sizeof(struct tcphdr)
+#define PAYLOAD 32 
+#define PACKET_BUFFER_LEN sizeof(struct iphdr) + sizeof(struct tcphdr) 
 
 
 typedef struct {
