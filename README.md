@@ -115,7 +115,7 @@ Optional parameters:
     wait seconds before and after synflood 
     values between 0 and 30 
     0 means no wait time 
-    default value is 2 seconds  
+    default value is 3 seconds  
     Usefull to prepare 'tcpdump' or other tools in a different window: 
     example: 
        -w 0 

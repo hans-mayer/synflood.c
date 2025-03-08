@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <sys/wait.h>
 
+/* SYN packets with payload are not accepted by some OS */ 
+/* #define WITHPAYLOAD 1 */ 
+#undef WITHPAYLOAD
 #define PAYLOAD 32 
 #define PACKET_BUFFER_LEN sizeof(struct iphdr) + sizeof(struct tcphdr) 
 

