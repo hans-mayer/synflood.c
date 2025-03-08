@@ -13,7 +13,7 @@ server will respond with a SYN-ACK and allocate some memory in the kernel
 buffer in an attempt to set up a new connection with us (at this point the
 connection is "half open" which is why the SYN Flooding Attack is also
 known as the "Half Open Attack"). The half open connections can be seen on
-the server side with `netstat -nat | grep "SYN_RECV"`. By sending multiple
+the server side with `netstat -nat | grep SYN_RECV`. By sending multiple
 SYNs per second, we can try to get the server to exhaust it's memory and thus
 make it to be unable to serve legitimate clients.
 
@@ -116,10 +116,14 @@ Optional parameters:
     values between 0 and 30 
     0 means no wait time 
     default value is 3 seconds  
-    Usefull to prepare 'tcpdump' or other tools in a different window: 
+    Usefull to prepare 'tcpdump' or other tools in a different window. 
     example: 
        -w 0 
 ```
+
+## Testimonials 
+
+See my blog [https://blog.mayer.tv/2025/03/08/behaviour-of-half-open-TCP-connections.html](https://blog.mayer.tv/2025/03/08/behaviour-of-half-open-TCP-connections.html) 
 
 ## History 
 This is a fork from https://github.com/Hypro999/synflood.c 
