@@ -295,8 +295,8 @@ main (int argc, char *argv[], char *envp[])
       return EXIT_FAILURE ; 
   } 
 
-  if ( maxports > loop_count ) { 
-      vlog ( "number of ports (%d) is greater than loop-count (%d) - this doesn't make sense \n" , maxports , loop_count ) ; 
+  if ( enable_loop_count & ( ( maxports + 1 ) > loop_count ) ) { 
+      vlog ( "number of ports (%d) is greater than loop-count (%d) - this doesn't make sense \n" , maxports + 1 , loop_count ) ; 
   }
 
   vlog("Commencing attack in %d %s.\n", wait_time, wait_time == 1 ? "second" : "seconds");
