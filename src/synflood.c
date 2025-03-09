@@ -62,8 +62,8 @@ setIpHeaders (struct iphdr *ip_headers, struct in_addr *hin_addr)
   ip_headers->version = 0x4;
   ip_headers->tos = 0x00;
   ip_headers->tot_len = 0x00;     /* Will be set by the kernel. See raw(7). */
-  ip_headers->id = 0x00;          /* Will be set by the kernel. See raw(7). */
-  ip_headers->frag_off = 0x0040;  /* Don't fragment. */
+  ip_headers->id = 0x0100;          /* Will be set by the kernel. See raw(7). == x0001 */
+  ip_headers->frag_off = 0x0000;  /* Don't fragment. */
   ip_headers->ttl = 0x40;         /* 0d64 */
   ip_headers->protocol = 0x06;
   ip_headers->check = 0x0000;     /* Will be set by the kernel. See raw(7). */
@@ -88,7 +88,7 @@ setTcpHeaders (struct tcphdr *tcp_headers, in_port_t port)
   tcp_headers->th_x2 = 0x00;
   tcp_headers->th_off = 0x5;
   tcp_headers->th_flags = TH_SYN;
-  tcp_headers->th_win = htons(64240);
+  tcp_headers->th_win = htons(8192);
   tcp_headers->th_sum = 0x00;   /* We will need to construct a pseudo header and compute this later. */
   tcp_headers->th_urp = 0x00;
 }
